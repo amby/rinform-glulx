@@ -640,8 +640,7 @@ system_file;
 
 [ MoreGames;
 	print (ESB) "РУССКОЯЗЫЧНОЕ ИЛ-СООБЩЕСТВО^^";
-	print "Дружелюбный Discord-сервер: https://discord.gg/X86kkzM^^";
+	print "Дружелюбный Discord-сервер: https://discord.gg/MdT2ZnQ^^";
 	print "Главный форум, посвящённый интерактивной литературе, написанной для любых платформ: http://ifiction.ru/^^";
 	print "Сайт, посвящённый русской адаптации платформы Inform (на которой написана эта игра), http://rinform.org/^^";
-	print "IRC-канал, на котором можно найти активных участников сообщества: #ifrus в сети irc.forestnet.org^";
 ];
