@@ -6,9 +6,19 @@
 
 1. Установить сам компилятор Inform для компиляции.
 2. Установить интерпретатор [glulxe](https://www.ifwiki.org/Glulxe). В Arch Linux это пакет `glulxe-term` и код ориентируется на него.
-3. Установить любую актуальную версию Python3.
-4. Проверить, что команда `inform` запускает компилятор, а команда `dglulxe` запускает интерпретатор dumbglulxe. Если это не так, вам придётся редактировать пути в скриптах.
-5. Запустить `test.sh`
+3. Если (2) не вариант, то собрать `Glulxe/CheapGlk` (`dglulxe`) следующим образом:
+    ```
+    git clone https://github.com/erkyrath/cheapglk.git
+    git clone https://github.com/erkyrath/glulxe.git
+    cd cheapglk
+    make
+    cd ../glulxe
+    make
+    mv glulxe dglulxe
+    ```
+4. Установить любую актуальную версию Python3.
+5. Проверить, что команда `inform` запускает компилятор, а команда `dglulxe` запускает интерпретатор dumbglulxe. Если это не так, вам придётся редактировать пути в скриптах.
+6. Запустить `test.sh`
 
 ## Текущее покрытие кода тестами
 
