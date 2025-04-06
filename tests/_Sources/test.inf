@@ -113,5 +113,10 @@ with
 name 'повар',
 has male animate;
 
+Object -> "птенчик/"
+    with
+    name 'птенчик',
+    has male anim_grammar;
+
 !============================================================================
 Include "RussiaG";
