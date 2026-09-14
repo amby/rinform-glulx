@@ -53,6 +53,7 @@ Object coffee "кофе" main_room
 with description "Зёрна для заварки кофе.",
 name 'коф' 'кофи' 'зерн' 'зёрн',
 casegen [ beg end csID;
+  beg = beg; end = end;
   switch (csID) {
     csNom: print "кофейные зёрна"; rtrue;
     csGen: print "кофейных зёрен"; rtrue;
