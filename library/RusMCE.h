@@ -589,8 +589,6 @@ return -1;
       PL_Req: rfalse;     ! (больше нет вариантов)
     }
   }
-
-  rfalse;
 ];
 
 !
