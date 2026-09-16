@@ -10,6 +10,25 @@
 4. Проверить, что команда `inform` запускает компилятор, а команда `dglulxe` запускает интерпретатор dumbglulxe. Если это не так, вам придётся редактировать пути в скриптах.
 5. Запустить `test.sh`
 
+## Новый regtest-набор
+
+Шаблон (не входит в `test.sh`, пока вы не скопируете его под новым именем):
+
+| Файл | Назначение |
+|---|---|
+| `_Sources/template.inf` | Минимальная комната, один объект, `Include "RussiaG"`. |
+| `_Tests/template.test` | Заголовок `** game:` / `** interpreter:` и один блок `*`. |
+
+Проверка шаблона вручную:
+
+```sh
+cd tests
+inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/template.inf
+python3 ./regtest.py _Tests/template.test --vital
+```
+
+После копирования (например, `version.inf` / `version.test`) добавьте в `test.sh` строку компиляции и строку `regtest.py` с теми же флагами, что у остальных наборов.
+
 ## Текущее покрытие кода тестами
 
 - [x] Навигация

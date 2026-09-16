@@ -1,0 +1,34 @@
+! template.inf — каркас для нового regtest-набора.
+!
+! Порядок работы:
+!   1. Скопировать template.inf и _Tests/template.test под новым именем (напр. version.inf / version.test).
+!   2. Добавлять комнаты и объекты только под проверяемое поведение.
+!   3. Записать транскрипт: dglulxe -u <имя>.ulx
+!   4. Добавить в test.sh строки компиляции и regtest (те же флаги, что у остальных наборов).
+!
+! Не раздувайте этот файл на месте; держите его минимальным, чтобы копии было проще сравнивать.
+
+Constant Story "Шаблон тестового набора";
+Constant Headline
+    "^Минимальная игра для копирования при добавлении regtest.^";
+
+Include "Parser";
+Include "VerbLib";
+
+[ Initialise;
+    location = main_room;
+    lookmode = 2;
+];
+
+Class Room has light;
+
+Room main_room "Площадь"
+    with description "Минимальная комната для новых regtest-сценариев.";
+
+Object sample "тестов/ый предмет/" main_room
+    with description "Пример объекта со слэш-именем для склонения.",
+    name 'тестов' 'предмет',
+    has ;
+
+!============================================================================
+Include "RussiaG";
