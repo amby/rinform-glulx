@@ -1,0 +1,42 @@
+! scoring.inf — тест для счёта, извещений и начисления очков.
+
+Constant Story "Тест начисления очков";
+Constant Headline "^Проверка Score, FullScore и NotifyOn/Off.^";
+
+Constant MAX_SCORE = 12;
+Constant TASKS_PROVIDED 0;
+Constant EXAMINE_MEDAL_SCORE = 3;
+
+Include "Parser";
+Include "VerbLib";
+
+[ Initialise;
+    location = start_room;
+    lookmode = 2;
+];
+
+Class Room has light;
+
+Room start_room "Старт"
+    with description "Комната отправления.",
+    e_to vault_room;
+
+Room vault_room "Сокровищница"
+    with description "Комната с сундуком.",
+    w_to start_room,
+    has scored;
+
+Object medal "золот/ая медаль" vault_room
+    with description "Золотая медаль.",
+    name 'золот' 'медаль',
+    after [;
+        Examine:
+            if (self hasnt general) {
+                give self general;
+                score = score + EXAMINE_MEDAL_SCORE;
+            }
+    ],
+    has female scored;
+
+!============================================================================
+Include "RussiaG";

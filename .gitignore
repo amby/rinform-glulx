@@ -1,3 +1,4 @@
 *.exe
 *.ulx
 *.out
+.DS_Store
