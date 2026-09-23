@@ -121,7 +121,7 @@ with description "Ломоть свежего хлеба.",
 name 'хлеб',
 has male;
 
-Object -> "повар"
+Object -> "повар/"
 with
 name 'повар',
 has male animate;
