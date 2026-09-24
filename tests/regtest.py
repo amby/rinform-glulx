@@ -132,7 +132,6 @@ class Command:
             else:
                 type = match.group(1)
                 cmd = cmd[match.end() : ].strip()
-            
         self.type = type
         if self.type == 'line':
             self.cmd = cmd
@@ -592,8 +591,8 @@ class GameStateCheap(GameState):
     """
 
     def perform_input(self, cmd):
-        if cmd.type != 'line':
-            raise Exception('Cheap mode only supports line input')
+        if cmd.type not in ('line', 'fileref_prompt'):
+            raise Exception('Cheap mode only supports line and fileref_prompt input')
         self.infile.write((cmd.cmd+'\n').encode())
         self.infile.flush()
 
@@ -609,6 +608,9 @@ class GameStateCheap(GameState):
                 break
             output += ch
             if (output[-2:] == b'\n>'):
+                break
+            # CheapGlk save/restore filename prompts (no ">" until after path).
+            if output.endswith(b'to store:\n') or output.endswith(b'to load:\n'):
                 break
             
         if time.time() >= timeout_time:
@@ -1255,7 +1257,9 @@ def run(test):
                     if check.vital:
                         raise VitalCheckException()
     
-        for cmd in cmdlist:
+        i = 0
+        while i < len(cmdlist):
+            cmd = cmdlist[i]
             if (opts.verbose):
                 if cmd.type == 'line':
                     if terpformat == 'cheap':
@@ -1266,6 +1270,16 @@ def run(test):
                 else:
                     print('> {%s} %s' % (cmd.type, repr(cmd.cmd),))
             gamestate.perform_input(cmd)
+            # CheapGlk does not print save/load filename prompts until the path
+            # is entered; send the paired fileref line before waiting for output.
+            paired_fileref = None
+            if (terpformat == 'cheap' and i + 1 < len(cmdlist)
+                    and cmdlist[i + 1].type == 'fileref_prompt'):
+                paired_fileref = cmdlist[i + 1]
+                if opts.verbose:
+                    print('> {%s} %s' % (paired_fileref.type, repr(paired_fileref.cmd),))
+                gamestate.perform_input(paired_fileref)
+                i += 1
             gamestate.accept_output()
             for check in cmd.checks:
                 res = check.eval(gamestate)
@@ -1275,6 +1289,16 @@ def run(test):
                     print('%s%s: %s' % (val, check, res))
                     if check.vital:
                         raise VitalCheckException()
+            if paired_fileref:
+                for check in paired_fileref.checks:
+                    res = check.eval(gamestate)
+                    if (res):
+                        totalerrors += 1
+                        val = '*** ' if opts.verbose else ''
+                        print('%s%s: %s' % (val, check, res))
+                        if check.vital:
+                            raise VitalCheckException()
+            i += 1
 
     except VitalCheckException as ex:
         # An error has already been logged; just fall out.
