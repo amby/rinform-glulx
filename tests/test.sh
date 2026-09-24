@@ -8,9 +8,11 @@ inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' 
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/test.inf
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/walking.inf
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/scoring.inf
+inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/system.inf
 python3 ./regtest.py _Tests/test.test --vital > test.out
 python3 ./regtest.py _Tests/walking.test --vital >> test.out
 python3 ./regtest.py _Tests/basic_meta_verbs.test --vital >> test.out
 python3 ./regtest.py _Tests/ambiguity.test --vital >> test.out
 python3 ./regtest.py _Tests/declension.test --vital >> test.out
 python3 ./regtest.py _Tests/scoring.test --vital >> test.out
+python3 ./regtest.py _Tests/system.test --vital >> test.out

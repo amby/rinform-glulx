@@ -1,0 +1,25 @@
+! system.inf — regtest для системных мета-команд (версия, сохранение, загрузка).
+
+Constant Story "Системные команды";
+Constant Headline "^Проверки Version, Save и Restore.^";
+
+Include "Parser";
+Include "VerbLib";
+
+[ Initialise;
+    location = hub_room;
+    lookmode = 2;
+];
+
+Class Room has light;
+
+Room hub_room "Зал"
+    with description "Нейтральная комната для мета-команд.",
+    e_to annex_room;
+
+Room annex_room "Пристройка"
+    with description "Комната для проверки восстановления положения.",
+    w_to hub_room;
+
+!============================================================================
+Include "RussiaG";

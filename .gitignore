@@ -2,3 +2,6 @@
 *.ulx
 *.out
 .DS_Store
+system_save.glk
+tests/system_save.glk
+tests/save.glksave
