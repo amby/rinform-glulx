@@ -1,5 +1,5 @@
 # RegTest: a really simple IF regression tester.
-#   Version 1.8
+#   Version 1.13
 #   Andrew Plotkin <erkyrath@eblong.com>
 #   This script is in the public domain.
 #
@@ -77,8 +77,8 @@ popt.add_option('-t', '--timeout',
                 dest='timeout_secs', type=float, default=1.0,
                 help='timeout interval (default: 1.0 sec)')
 popt.add_option('--vital',
-                action='store_true', dest='vital',
-                help='abort a test on the first error')
+                action='count', dest='vital', default=0,
+                help='abort a test on the first error (or the whole run, if repeated)')
 popt.add_option('-v', '--verbose',
                 action='count', dest='verbose', default=0,
                 help='display the transcripts as they run')
@@ -163,6 +163,14 @@ class Command:
             except:
                 pass
             self.cmd = cmd
+        elif self.type == 'mouse':
+            try:
+                ls = cmd.split()
+                self.x = int(ls[0])
+                self.y = int(ls[1])
+                self.cmd = (self.x, self.y,)
+            except:
+                raise Exception('Mouse event must provide numeric x and y')
         elif self.type == 'refresh':
             self.cmd = None
         elif self.type == 'arrange':
@@ -186,8 +194,8 @@ class Command:
         self.checks = []
     def __repr__(self):
         return '<Command "%s">' % (self.cmd,)
-    def addcheck(self, ln):
-        args = {}
+    def addcheck(self, ln, linenum):
+        args = { 'linenum':linenum }
         # First peel off "!" and "{...}" prefixes
         while True:
             match = re.match('!|{[a-z]*}', ln)
@@ -235,29 +243,33 @@ class Check:
     inverse = False
     instatus = False
     ingraphics = False
+    showverbose = False
 
     @classmethod
     def buildcheck(cla, ln, args):
         raise Exception('No buildcheck method defined for class: %s' % (cla.__name__,))
     
     def __init__(self, ln, **args):
+        self.linenum = args.get('linenum', None)
         self.inverse = args.get('inverse', False)
         self.instatus = args.get('instatus', False)
         self.ingraphics = args.get('ingraphics', False)
+        self.showverbose = opts.verbose
         self.vital = args.get('vital', False) or opts.vital
         self.ln = ln
         
     def __repr__(self):
         val = self.ln
-        if len(val) > 32:
+        if len(val) > 32 and not self.showverbose:
             val = val[:32] + '...'
+        lnumflag = '' if self.linenum is None else ':%d' % (self.linenum,)
         invflag = '!' if self.inverse else ''
         if self.instatus:
             invflag += '{status}'
         if self.ingraphics:
             invflag += '{graphics}'
         detail = self.reprdetail()
-        return '<%s %s%s"%s">' % (self.__class__.__name__, detail, invflag, val,)
+        return '<%s%s %s%s"%s">' % (self.__class__.__name__, lnumflag, detail, invflag, val,)
 
     def reprdetail(self):
         return ''
@@ -310,7 +322,6 @@ class LiteralCheck(Check):
         return LiteralCheck(ln, **args)
     def subeval(self, lines):
         for ln in lines:
-            print(ln)
             if self.ln in ln:
                 return
         return 'not found'
@@ -447,6 +458,10 @@ class ImageSpanCheck(Check):
             res.imagevalue = int(match.group(1))
             res.widthvalue = None
             res.heightvalue = None
+            res.widthratiovalue = None
+            res.aspectwidthvalue = None
+            res.aspectheightvalue = None
+            res.winmaxwidthvalue = None
             res.alignmentvalue = None
             res.xvalue = None
             res.yvalue = None
@@ -455,7 +470,7 @@ class ImageSpanCheck(Check):
                 for val in opts.split(' '):
                     if not val:
                         continue
-                    match = re.match('([a-z]+)=([a-z0-9]+)', val)
+                    match = re.match('([a-z]+)=([a-z0-9.]+)', val)
                     if not match:
                         raise Exception('{image} argument not recognized: %s' % val)
                     key = match.group(1)
@@ -464,6 +479,17 @@ class ImageSpanCheck(Check):
                         res.widthvalue = int(val)
                     elif key == 'height':
                         res.heightvalue = int(val)
+                    elif key == 'widthratio':
+                        res.widthratiovalue = float(val)
+                    elif key == 'aspectwidth':
+                        res.aspectwidthvalue = float(val)
+                    elif key == 'aspectheight':
+                        res.aspectheightvalue = float(val)
+                    elif key == 'winmaxwidth':
+                        if val == 'null':
+                            res.winmaxwidthvalue = 'null'
+                        else:
+                            res.winmaxwidthvalue = float(val)
                     elif key == 'alignment':
                         res.alignmentvalue = val
                     elif key == 'x':
@@ -474,7 +500,19 @@ class ImageSpanCheck(Check):
                         raise Exception('{image} argument not recognized: %s' % key)
             return res
     def reprdetail(self):
-        return '{image=%d} ' % (self.imagevalue,)
+        pairs = [
+            ('image', self.imagevalue),
+            ('width', self.widthvalue),
+            ('height', self.heightvalue),
+            ('widthratio', self.widthratiovalue),
+            ('aspectwidth', self.aspectwidthvalue),
+            ('aspectheight', self.aspectheightvalue),
+            ('winmaxwidth', self.winmaxwidthvalue),
+            ('x', self.xvalue),
+            ('y', self.yvalue),
+        ]
+        strls = [ ('%s=%s' % (key, val,)) for (key, val) in pairs if val is not None ]
+        return '{%s} ' % (' '.join(strls),)
     def subeval(self, lines):
         for para in lines:
             for line in para:
@@ -484,6 +522,18 @@ class ImageSpanCheck(Check):
                             continue
                         if self.heightvalue is not None and span.get('height') != self.heightvalue:
                             continue
+                        if self.widthratiovalue is not None and span.get('widthratio') != self.widthratiovalue:
+                            continue
+                        if self.aspectwidthvalue is not None and span.get('aspectwidth') != self.aspectwidthvalue:
+                            continue
+                        if self.aspectheightvalue is not None and span.get('aspectheight') != self.aspectheightvalue:
+                            continue
+                        if self.winmaxwidthvalue is not None:
+                            val = self.winmaxwidthvalue
+                            if val == 'null':
+                                val = None
+                            if span.get('winmaxwidth') != val:
+                                continue
                         if self.alignmentvalue is not None and span.get('alignment') != self.alignmentvalue:
                             continue
                         if self.xvalue is not None and span.get('x') != self.xvalue:
@@ -522,6 +572,9 @@ class GameState:
         self.statuswindat = []
         self.graphicswindat = []
         self.storywindat = []
+        # Gotta keep track of where each status window begins in the
+        # (vertically) agglomerated statuswin[] array
+        self.statuslinestarts = {}
 
     def initialize(self):
         pass
@@ -573,10 +626,28 @@ class GameStateCheap(GameState):
 class GameStateRemGlk(GameState):
     """Wrapper for a RemGlk-based interpreter. This can in theory handle
     any I/O supported by Glk. But the current implementation is limited
-    to line and char input, and no more than one status (grid) and one
-    graphics window. Multiple story (buffer) windows are accepted, but
-    their output for a given turn is agglomerated.
+    to line and char input, and no more than one graphics window.
+    Multiple story (buffer) windows are accepted, but their output for
+    a given turn is agglomerated. The same goes for multiple status (grid)
+    windows.
     """
+
+    @staticmethod
+    def assert_json(dat):
+        # Given a block of text, complain if it starts with lines that
+        # don't look like JSON. Raises an exception contining the offending
+        # lines.
+        # Note that this doesn't check whether the text *is* JSON. (We
+        # might get a partial JSON output.) We just want to make sure that
+        # it starts with an open-brace.
+        dat = dat.lstrip()
+        badlines = []
+        while dat and not dat.startswith('{'):
+            ln, _, dat = dat.partition('\n')
+            badlines.append(ln.rstrip())
+            dat = dat.lstrip()
+        if badlines:
+            raise NotJSONException(*badlines)
 
     @staticmethod
     def extract_text(line):
@@ -621,7 +692,7 @@ class GameStateRemGlk(GameState):
         import json
         update = { 'type':'init', 'gen':0,
                    'metrics': GameStateRemGlk.create_metrics(),
-                   'support': [ 'timer', 'hyperlinks', 'graphics', 'graphicswin' ],
+                   'support': [ 'timer', 'hyperlinks', 'graphics', 'graphicswin', 'graphicsext' ],
                    }
         cmd = json.dumps(update)
         self.infile.write((cmd+'\n').encode())
@@ -634,6 +705,7 @@ class GameStateRemGlk(GameState):
         self.charinputwin = None
         self.specialinput = None
         self.hyperlinkinputwin = None
+        self.mouseinputwin = None
 
     def perform_input(self, cmd):
         import json
@@ -658,12 +730,15 @@ class GameStateRemGlk(GameState):
             if ch == b'':
                 # End of stream. Hopefully we have a valid object.
                 dat = output.decode('utf-8')
+                self.assert_json(dat)
                 update = json.loads(dat)
                 break
             output += ch
             if (output[-1] == ord('}')):
-                # Test and see if we have a valid object.
+                # Test and see if we have a complete valid object.
+                # (It might be partial, in which case we'll try again later.)
                 dat = output.decode('utf-8')
+                self.assert_json(dat)
                 try:
                     update = json.loads(dat)
                     break
@@ -698,6 +773,12 @@ class GameStateRemGlk(GameState):
             update = { 'type':'hyperlink', 'gen':self.generation,
                        'window':self.hyperlinkinputwin, 'value':cmd.cmd
                        }
+        elif cmd.type == 'mouse':
+            if not self.mouseinputwin:
+                raise Exception('Game is not expecting mouse input')
+            update = { 'type':'mouse', 'gen':self.generation,
+                       'window':self.mouseinputwin, 'x':cmd.x, 'y':cmd.y
+                      }
         elif cmd.type == 'timer':
             update = { 'type':'timer', 'gen':self.generation }
         elif cmd.type == 'arrange':
@@ -741,20 +822,20 @@ class GameStateRemGlk(GameState):
                 self.windows[id] = win
             
             grids = [ win for win in self.windows.values() if win.get('type') == 'grid' ]
-            if len(grids) > 1:
-                raise Exception('Cannot handle more than one grid window')
-            if not grids:
-                self.statuswin = []
-                self.statuswindat = []
-            else:
-                win = grids[0]
-                height = win.get('gridheight', 0)
-                if height < len(self.statuswin):
-                    self.statuswin = self.statuswin[0:height]
-                    self.statuswindat = self.statuswindat[0:height]
-                while height > len(self.statuswin):
-                    self.statuswin.append('')
-                    self.statuswindat.append([])
+            totalheight = 0
+            # This doesn't work if just one status window resizes.
+            # We should be keeping track of them separately and merging
+            # the lists on every update.
+            self.statuslinestarts.clear()
+            for win in grids:
+                self.statuslinestarts[win.get('id')] = totalheight
+                totalheight += win.get('gridheight', 0)
+            if totalheight < len(self.statuswin):
+                self.statuswin = self.statuswin[0:totalheight]
+                self.statuswindat = self.statuswindat[0:totalheight]
+            while totalheight > len(self.statuswin):
+                self.statuswin.append('')
+                self.statuswindat.append([])
 
         contents = update.get('content')
         if contents is not None:
@@ -785,7 +866,7 @@ class GameStateRemGlk(GameState):
                 elif win.get('type') == 'grid':
                     lines = content.get('lines')
                     for line in lines:
-                        linenum = line.get('line')
+                        linenum = self.statuslinestarts[id] + line.get('line')
                         dat = self.extract_text(line)
                         if linenum >= 0 and linenum < len(self.statuswin):
                             self.statuswin[linenum] = dat
@@ -806,11 +887,13 @@ class GameStateRemGlk(GameState):
             self.lineinputwin = None
             self.charinputwin = None
             self.hyperlinkinputwin = None
+            self.mouseinputwin = None
         elif inputs is not None:
             self.specialinput = None
             self.lineinputwin = None
             self.charinputwin = None
             self.hyperlinkinputwin = None
+            self.mouseinputwin = None
             for input in inputs:
                 if input.get('type') == 'line':
                     if self.lineinputwin:
@@ -822,6 +905,8 @@ class GameStateRemGlk(GameState):
                     self.charinputwin = input.get('id')
                 if input.get('hyperlink'):
                     self.hyperlinkinputwin = input.get('id')
+                if input.get('mouse'):
+                    self.mouseinputwin = input.get('id')
 
 class GameStateRemGlkSingle(GameStateRemGlk):
     """Wrapper for a RemGlk-based interpreter in single-turn mode. That is,
@@ -835,7 +920,7 @@ class GameStateRemGlkSingle(GameStateRemGlk):
         import json
         update = { 'type':'init', 'gen':0,
                    'metrics': GameStateRemGlk.create_metrics(),
-                   'support': [ 'timer', 'hyperlinks', 'graphics', 'graphicswin' ],
+                   'support': [ 'timer', 'hyperlinks', 'graphics', 'graphicswin', 'graphicsext' ],
                    }
         cmd = json.dumps(update)
         
@@ -855,6 +940,7 @@ class GameStateRemGlkSingle(GameStateRemGlk):
         self.charinputwin = None
         self.specialinput = None
         self.hyperlinkinputwin = None
+        self.mouseinputwin = None
 
     def perform_input(self, cmd):
         import json
@@ -867,11 +953,12 @@ class GameStateRemGlkSingle(GameStateRemGlk):
             bufsize=0,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         (outdat, errdat) = proc.communicate((cmd+'\n').encode(), timeout=opts.timeout_secs)
-        self.pendingupdate = outdat
+        self.pendingupdate = outdat.decode()
         
     def accept_output(self):
         import json
         dat = self.pendingupdate
+        self.assert_json(dat)
         update = json.loads(dat)
         self.pendingupdate = None
 
@@ -1033,11 +1120,13 @@ def parse_tests(filename):
     fl = open(filename)
     curtest = None
     curcmd = None
+    linenum = 0
 
     while True:
         ln = fl.readline()
         if (not ln):
             break
+        linenum += 1
         if py2_readline:
             ln = ln.decode('utf-8')
         ln = ln.strip()
@@ -1092,7 +1181,7 @@ def parse_tests(filename):
             curtest.addcmd(curcmd)
             continue
 
-        curcmd.addcheck(ln)
+        curcmd.addcheck(ln, linenum)
 
     fl.close()
 
@@ -1116,6 +1205,8 @@ def list_commands(ls, res=None, nested=()):
     return res
 
 class VitalCheckException(Exception):
+    pass
+class NotJSONException(Exception):
     pass
 
 def run(test):
@@ -1160,7 +1251,7 @@ def run(test):
                 if (res):
                     totalerrors += 1
                     val = '*** ' if opts.verbose else ''
-                    print('%s%s: %s' % (val, check, res), file=sys.stderr)
+                    print('%s%s: %s' % (val, check, res))
                     if check.vital:
                         raise VitalCheckException()
     
@@ -1171,7 +1262,7 @@ def run(test):
                         print('> %s' % (cmd.cmd,))
                     else:
                         # The input line is echoed by the game.
-                        print('>', end='')
+                        print('> ', end='')
                 else:
                     print('> {%s} %s' % (cmd.type, repr(cmd.cmd),))
             gamestate.perform_input(cmd)
@@ -1181,17 +1272,23 @@ def run(test):
                 if (res):
                     totalerrors += 1
                     val = '*** ' if opts.verbose else ''
-                    print('%s%s: %s' % (val, check, res), file=sys.stderr)
+                    print('%s%s: %s' % (val, check, res))
                     if check.vital:
                         raise VitalCheckException()
 
     except VitalCheckException as ex:
         # An error has already been logged; just fall out.
         pass
+    except NotJSONException as ex:
+        totalerrors += 1
+        val = '*** ' if opts.verbose else ''
+        print('%s%s, interpreter output:' % (val, ex.__class__.__name__))
+        for ln in ex.args:
+            print('  %s' % (ln,))
     except Exception as ex:
         totalerrors += 1
         val = '*** ' if opts.verbose else ''
-        print('%s%s: %s' % (val, ex.__class__.__name__, ex), file=sys.stderr)
+        print('%s%s: %s' % (val, ex.__class__.__name__, ex))
 
     gamestate = None
     if proc:
@@ -1263,10 +1360,12 @@ for test in testls:
             print(test.name)
         else:
             run(test)
+            if totalerrors and opts.vital >= 2:
+                break
 
 if (not testcount):
     print('No tests performed!')
 if (totalerrors):
     print()
-    print('FAILED: %d errors' % (totalerrors,), file=sys.stderr)
+    print('FAILED: %d errors' % (totalerrors,))
     sys.exit(1)
