@@ -1253,7 +1253,7 @@ def run(test):
                 if (res):
                     totalerrors += 1
                     val = '*** ' if opts.verbose else ''
-                    print('%s%s: %s' % (val, check, res))
+                    print('%s%s: %s' % (val, check, res), file=sys.stderr)
                     if check.vital:
                         raise VitalCheckException()
     
@@ -1286,7 +1286,7 @@ def run(test):
                 if (res):
                     totalerrors += 1
                     val = '*** ' if opts.verbose else ''
-                    print('%s%s: %s' % (val, check, res))
+                    print('%s%s: %s' % (val, check, res), file=sys.stderr)
                     if check.vital:
                         raise VitalCheckException()
             if paired_fileref:
@@ -1295,7 +1295,7 @@ def run(test):
                     if (res):
                         totalerrors += 1
                         val = '*** ' if opts.verbose else ''
-                        print('%s%s: %s' % (val, check, res))
+                        print('%s%s: %s' % (val, check, res), file=sys.stderr)
                         if check.vital:
                             raise VitalCheckException()
             i += 1
@@ -1306,13 +1306,13 @@ def run(test):
     except NotJSONException as ex:
         totalerrors += 1
         val = '*** ' if opts.verbose else ''
-        print('%s%s, interpreter output:' % (val, ex.__class__.__name__))
+        print('%s%s, interpreter output:' % (val, ex.__class__.__name__), file=sys.stderr)
         for ln in ex.args:
-            print('  %s' % (ln,))
+            print('  %s' % (ln,), file=sys.stderr)
     except Exception as ex:
         totalerrors += 1
         val = '*** ' if opts.verbose else ''
-        print('%s%s: %s' % (val, ex.__class__.__name__, ex))
+        print('%s%s: %s' % (val, ex.__class__.__name__, ex), file=sys.stderr)
 
     gamestate = None
     if proc:
@@ -1390,6 +1390,6 @@ for test in testls:
 if (not testcount):
     print('No tests performed!')
 if (totalerrors):
-    print()
-    print('FAILED: %d errors' % (totalerrors,))
+    print(file=sys.stderr)
+    print('FAILED: %d errors' % (totalerrors,), file=sys.stderr)
     sys.exit(1)
