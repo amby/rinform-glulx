@@ -2,6 +2,23 @@
 
 TESTS=(test walking basic_meta_verbs ambiguity declension scoring system)
 
+if [ $# -ge 1 ]; then
+  pick=$1
+  ok=0
+  for name in "${TESTS[@]}"; do
+    if [ "${name}" = "${pick}" ]; then
+      ok=1
+      break
+    fi
+  done
+  if [ "${ok}" -eq 0 ]; then
+    echo "Unknown test: ${pick}" >&2
+    echo "Valid tests: ${TESTS[*]}" >&2
+    exit 2
+  fi
+  TESTS=("${pick}")
+fi
+
 for name in "${TESTS[@]}"; do
   inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D "_Sources/${name}.inf"
 done
