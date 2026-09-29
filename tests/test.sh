@@ -1,12 +1,10 @@
 #!/bin/bash
 
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/ambiguity.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/basic_meta_verbs.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/declension.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/test.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/walking.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/scoring.inf
-inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/system.inf
+TESTS=(test walking basic_meta_verbs ambiguity declension scoring system)
+
+for name in "${TESTS[@]}"; do
+  inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D "_Sources/${name}.inf"
+done
 
 REGTEST_FAIL=0
 regtest() {
@@ -19,13 +17,9 @@ regtest() {
 }
 
 : > test.out
-regtest _Tests/test.test
-regtest _Tests/walking.test
-regtest _Tests/basic_meta_verbs.test
-regtest _Tests/ambiguity.test
-regtest _Tests/declension.test
-regtest _Tests/scoring.test
-regtest _Tests/system.test
+for name in "${TESTS[@]}"; do
+  regtest "_Tests/${name}.test"
+done
 
 if [ "${REGTEST_FAIL}" -ne 0 ]; then
   echo "Regtest failed (see test.out)." >&2
