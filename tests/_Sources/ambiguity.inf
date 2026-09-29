@@ -43,6 +43,27 @@ with description "Обычная домашняя кошка. Она вряд л
 name 'кошк' 'коша',
 has female animate;
 
+! Два предмета с общим словарным словом «ключ» — для уточнения «Что имеется в виду».
+Object red_key "красн/ый ключ/" main_room
+with description "Красный ключ от ничего.",
+name 'красн' 'ключ',
+has male;
+
+Object blue_key "син/ий ключ/" main_room
+with description "Синий ключ от ничего.",
+name 'син' 'ключ',
+has male;
+
+Object wood_box "деревянн/ый ящик/" main_room
+with description "Пустой деревянный ящик.",
+name 'деревян' 'ящик',
+has container open;
+
+Object metal_box "металлическ/ий ящик/" main_room
+with description "Пустой металлический ящик.",
+name 'металл' 'металлическ' 'ящик',
+has container open;
+
 Object fluff "пух/" main_room
 with description "Маленький комочек пуха, из тех что можно найти в карманах старого домашнего халата, особенно если начать утро без чая.",
 name 'пух' 'пушок',
