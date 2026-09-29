@@ -1,8 +1,5 @@
 #!/bin/bash
 
-if [ ! -f regtest.py ]; then
-  wget https://github.com/erkyrath/plotex/raw/master/regtest.py
-fi
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/ambiguity.inf
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/basic_meta_verbs.inf
 inform +../library,../libext +language_name=Russian -DG -Cu '$DICT_CHAR_SIZE=4' -Cu '$DICT_WORD_SIZE=12' -D _Sources/declension.inf
